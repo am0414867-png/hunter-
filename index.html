@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050912">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>نظام الصياد</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Rajdhani:wght@500;700&family=Reem+Kufi:wght@500;700&display=swap">
+<style>
+/* Layout: one column of glowing system windows, like the status screen in Solo Leveling. */
+:root {
+  --bg: #050912;
+  --panel: #09142a;
+  --panel-2: #0d1d3d;
+  --line: #1d4f9c;
+  --blue: #4aa8ff;
+  --text: #d9e8ff;
+  --mute: #8aa0c6;
+  --good: #47e0a0;
+  --warn: #f2b84b;
+  --bad: #ff6b7a;
+  --f-display: "Reem Kufi", "Cairo", "Segoe UI", Tahoma, sans-serif;
+  --f-body: "Cairo", "Segoe UI", Tahoma, sans-serif;
+  --f-hud: "Rajdhani", "Cairo", "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 50% -10%, #0f2a5a 0%, transparent 55%);
+  background-repeat: no-repeat;
+  color: var(--text);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-inline: 16px;
+  padding-block: 20px 40px;
+}
+#app { max-width: 640px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+h1, h2 { font-family: var(--f-display); font-weight: 700; margin: 0; text-wrap: balance; }
+.tag { font-family: var(--f-hud); letter-spacing: .18em; font-size: 12px; color: var(--blue); text-transform: uppercase; }
+.num { font-family: var(--f-hud); font-variant-numeric: tabular-nums; }
+
+.win {
+  position: relative;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 0 24px rgba(74,168,255,.12), inset 0 0 28px rgba(74,168,255,.05);
+  min-width: 0;
+}
+.win::before, .win::after {
+  content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid var(--blue); pointer-events: none;
+}
+.win::before { top: -2px; right: -2px; border-left: 0; border-bottom: 0; }
+.win::after { bottom: -2px; left: -2px; border-right: 0; border-top: 0; }
+.win-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.win-head h2 { font-size: 20px; }
+.sub { color: var(--mute); font-size: 13px; }
+
+/* status */
+.status-top { display: flex; align-items: center; gap: 16px; }
+.lvl { text-align: center; min-width: 78px; }
+.lvl .big { font-family: var(--f-hud); font-size: 56px; font-weight: 700; line-height: 1; color: #fff; text-shadow: 0 0 18px rgba(74,168,255,.7); }
+.lvl .cap { font-family: var(--f-hud); letter-spacing: .2em; font-size: 12px; color: var(--blue); }
+.who { flex: 1; min-width: 0; }
+.who h1 { font-size: 26px; line-height: 1.2; }
+.rank { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.badge { font-family: var(--f-hud); font-weight: 700; font-size: 15px; border: 1px solid var(--blue); color: var(--blue); padding: 0 10px; border-radius: 3px; }
+.chip { font-size: 13px; color: var(--mute); }
+.chip b { color: var(--warn); font-family: var(--f-hud); font-size: 16px; }
+.bar { height: 10px; background: #061024; border: 1px solid #16407f; border-radius: 2px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: linear-gradient(90deg, #1b6fe0, var(--blue)); box-shadow: 0 0 10px var(--blue); transition: width .5s; }
+.xp-row { display: flex; justify-content: space-between; margin-top: 14px; margin-bottom: 6px; font-size: 13px; color: var(--mute); }
+
+/* timer */
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.time { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.time label { font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--mute); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot.s { background: var(--good); box-shadow: 0 0 8px var(--good); }
+.dot.e { background: var(--bad); box-shadow: 0 0 8px var(--bad); }
+input[type=time], input[type=number] {
+  width: 100%; min-width: 0; background: #061024; color: var(--text); border: 1px solid #1d4f9c; border-radius: 3px;
+  font-family: var(--f-hud); font-size: 22px; padding: 6px 10px; direction: ltr; text-align: center;
+}
+input:focus-visible, button:focus-visible { outline: 2px solid var(--warn); outline-offset: 2px; }
+.timer-state { margin-top: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.timer-state .clock { font-family: var(--f-hud); font-size: 30px; font-weight: 700; direction: ltr; }
+.timer-state .msg { font-size: 14px; color: var(--mute); }
+.note { margin: 12px 0 0; font-size: 12.5px; color: var(--mute); }
+
+/* quests */
+.quests { display: flex; flex-direction: column; gap: 8px; }
+.q {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: start;
+  background: #07122a; border: 1px solid #1a3f7d; border-radius: 3px; color: var(--text);
+  font: inherit; padding: 12px; cursor: pointer; min-height: 52px;
+}
+.q:hover { border-color: var(--blue); }
+.q .box { flex: none; width: 22px; height: 22px; border: 2px solid var(--blue); border-radius: 2px; display: grid; place-items: center; color: transparent; font-weight: 700; }
+.q .txt { flex: 1; min-width: 0; }
+.q .txt b { display: block; font-weight: 600; }
+.q .txt span { font-size: 13px; color: var(--mute); }
+.q .xp { font-family: var(--f-hud); font-weight: 700; color: var(--warn); font-size: 16px; direction: ltr; }
+.q[aria-pressed=true] { border-color: var(--good); background: #082019; }
+.q[aria-pressed=true] .box { background: var(--good); border-color: var(--good); color: #04130c; }
+.q[aria-pressed=true] .txt b { text-decoration: line-through; text-decoration-color: var(--good); }
+.callout { margin-top: 12px; padding: 10px 12px; border: 1px dashed #2a62b8; border-radius: 3px; font-size: 14px; color: var(--text); }
+.callout.good { border-color: var(--good); color: var(--good); }
+
+/* stats */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat { background: #07122a; border: 1px solid #1a3f7d; border-radius: 3px; padding: 10px 12px; min-width: 0; }
+.stat .row { display: flex; justify-content: space-between; align-items: baseline; }
+.stat .k { font-family: var(--f-hud); font-weight: 700; letter-spacing: .12em; color: var(--blue); }
+.stat .v { font-family: var(--f-hud); font-size: 28px; font-weight: 700; color: #fff; }
+.stat .d { font-size: 12px; color: var(--mute); margin-bottom: 6px; }
+
+/* week */
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.day { text-align: center; padding: 8px 2px; border: 1px solid #1a3f7d; border-radius: 3px; background: #07122a; min-width: 0; }
+.day .n { font-size: 12px; color: var(--mute); display: block; }
+.day .t { font-size: 11px; display: block; margin-block: 2px; min-height: 2.6em; line-height: 1.3; }
+.day .m { font-family: var(--f-hud); font-weight: 700; font-size: 16px; color: #36507f; }
+.day.done { border-color: var(--good); }
+.day.done .m { color: var(--good); }
+.day.today { border-color: var(--warn); box-shadow: 0 0 10px rgba(242,184,75,.35); }
+.day.future { opacity: .6; }
+.boss { margin-top: 14px; }
+.boss .xp-row { margin-top: 0; }
+
+/* tests */
+.test-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.test-grid label { font-size: 12.5px; color: var(--mute); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.test-grid input { font-size: 18px; }
+.btn {
+  margin-top: 12px; width: 100%; background: transparent; color: var(--blue); border: 1px solid var(--blue);
+  font-family: var(--f-body); font-weight: 700; font-size: 15px; padding: 10px; border-radius: 3px; cursor: pointer; min-height: 44px;
+}
+.btn:hover { background: rgba(74,168,255,.12); }
+.hist { margin-top: 12px; overflow-x: auto; }
+.hist table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.hist th, .hist td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #16407f; white-space: nowrap; }
+.hist th { color: var(--mute); font-weight: 600; font-size: 12.5px; }
+.hist td { font-family: var(--f-hud); font-size: 16px; }
+.up { color: var(--good); font-size: 12px; }
+.down { color: var(--bad); font-size: 12px; }
+
+/* stages */
+.stages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.stages li { display: flex; gap: 12px; align-items: baseline; padding: 8px 10px; border: 1px solid #16407f; border-radius: 3px; color: var(--mute); }
+.stages li .l { font-family: var(--f-hud); font-weight: 700; min-width: 3.2em; }
+.stages li.cur { border-color: var(--blue); color: var(--text); background: rgba(74,168,255,.1); }
+.stages li.past { color: var(--good); border-color: #1d6b4d; }
+.stages li small { color: var(--mute); }
+
+@media (max-width: 420px) {
+  .lvl .big { font-size: 46px; }
+  .who h1 { font-size: 22px; }
+  .test-grid { grid-template-columns: 1fr; }
+  .day .t { font-size: 10.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+
+<style>html{background:#050912}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+<main id="app" dir="rtl" lang="ar">
+
+  <section class="win" aria-label="الحالة">
+    <div class="tag" style="margin-bottom:10px">[ SYSTEM ]</div>
+    <div class="status-top">
+      <div class="lvl"><div class="big num" id="lvl">1</div><div class="cap">LEVEL</div></div>
+      <div class="who">
+        <h1>الصياد شادو</h1>
+        <div class="rank"><span class="badge" id="rank">E</span><span id="stage" class="sub"></span><span class="chip">الاستمرار <b id="streak">0</b> يوم</span></div>
+      </div>
+    </div>
+    <div class="xp-row"><span>الخبرة</span><span class="num" id="xp-text">0 / 600</span></div>
+    <div class="bar"><i id="xp-bar" style="width:0%"></i></div>
+  </section>
+
+  <section class="win" aria-label="وقت التمرين">
+    <div class="win-head"><h2>وقت التمرين</h2><span class="sub" id="today-line"></span></div>
+    <div class="times">
+      <div class="time"><label for="t-start"><span class="dot s"></span>بداية التمرين</label><input id="t-start" type="time" value="07:00"></div>
+      <div class="time"><label for="t-end"><span class="dot e"></span>نهاية التمرين</label><input id="t-end" type="time" value="00:00"></div>
+    </div>
+    <div class="timer-state"><span class="clock" id="clock">--:--:--</span><span class="msg" id="timer-msg"></span></div>
+    <div class="bar" style="margin-top:10px"><i id="timer-bar" style="width:0%"></i></div>
+    <p class="note">المواعيد دي للعداد هنا. المنبه الحقيقي بيتظبط على تليفونك.</p>
+  </section>
+
+  <section class="win" aria-label="مهام اليوم">
+    <div class="win-head"><h2 id="q-title">مهام اليوم</h2><span class="sub num" id="q-count"></span></div>
+    <div class="quests" id="quests"></div>
+    <div id="q-note"></div>
+  </section>
+
+  <section class="win" aria-label="الإحصائيات">
+    <div class="win-head"><h2>الإحصائيات</h2><span class="sub">بتزيد مع كل مهمة تخلصها</span></div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="win" aria-label="الأسبوع">
+    <div class="win-head"><h2>الأسبوع</h2><span class="sub">من السبت للجمعة</span></div>
+    <div class="week" id="week"></div>
+    <div class="boss">
+      <div class="xp-row"><span>مكافأة الأسبوع: 5 أيام من 7</span><span class="num" id="boss-text">0 / 5</span></div>
+      <div class="bar"><i id="boss-bar" style="width:0%"></i></div>
+      <p class="note">لو خلصت 5 أيام (والراحة والتعافي من ضمنهم) بتاخد +150 XP. اليوم اللي يفوتك مش بيخصم من مستواك.</p>
+    </div>
+  </section>
+
+  <section class="win" aria-label="اختبار القياس">
+    <div class="win-head"><h2>اختبار القياس</h2><span class="sub">كل أسبوعين، +50 XP</span></div>
+    <div class="test-grid">
+      <label for="in-push">أقصى ضغط<input id="in-push" type="number" inputmode="numeric" min="0" max="500"></label>
+      <label for="in-squat">أقصى سكوات<input id="in-squat" type="number" inputmode="numeric" min="0" max="500"></label>
+      <label for="in-run">جري 2 كم (دقيقة)<input id="in-run" type="number" inputmode="decimal" min="0" max="60" step="0.1"></label>
+    </div>
+    <button class="btn" id="save-test" type="button">سجّل الاختبار</button>
+    <div class="hist" id="hist"></div>
+  </section>
+
+  <section class="win" aria-label="المراحل">
+    <div class="win-head"><h2>المراحل</h2></div>
+    <ul class="stages" id="stages"></ul>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  var KEY = "hunter-system-v1";
+  var STAGES = [
+    ["E", "الاستيقاظ", "تثبيت عادة التمرين"],
+    ["D", "الصياد المبتدئ", "تحسين الأداء تدريجيًا"],
+    ["C", "الصياد المقاتل", "تدريبات كيس البوكس"],
+    ["B", "التطور الجسدي", "برنامج قوة وعضلات متوازن"],
+    ["A", "ملك الظلال", "الانضباط والاستمرارية"]
+  ];
+  var DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  var TYPE_BY_DAY = ["rest", "strength", "cardio", "strength", "recovery", "strength", "boxing"];
+  var TYPES = {
+    strength: { name: "قوة", quests: [
+      { id: "push", t: "ضغط", n: "20 تكرار", xp: 30, s: "STR" },
+      { id: "squat", t: "سكوات", n: "20 تكرار", xp: 30, s: "VIT" },
+      { id: "abs", t: "بطن", n: "20 تكرار", xp: 30, s: "END" }] },
+    cardio: { name: "جري", quests: [
+      { id: "run", t: "جري", n: "2 كم", xp: 60, s: "AGI" },
+      { id: "warm", t: "إحماء وإطالة", n: "5 دقائق", xp: 15, s: "VIT" }] },
+    boxing: { name: "كيس بوكس", quests: [
+      { id: "bag", t: "كيس بوكس", n: "3 جولات، كل جولة دقيقتين", xp: 60, s: "AGI" },
+      { id: "core", t: "بطن", n: "20 تكرار", xp: 20, s: "END" }] },
+    recovery: { name: "تعافي", quests: [
+      { id: "walk", t: "مشي", n: "20 دقيقة", xp: 30, s: "END" },
+      { id: "stretch", t: "إطالة", n: "10 دقائق", xp: 30, s: "VIT" }] },
+    rest: { name: "راحة", quests: [
+      { id: "rest", t: "راحة كاملة", n: "نوم كويس وميّه كفاية", xp: 40, s: "VIT" }] }
+  };
+  var STAT_INFO = { STR: "القوة", VIT: "البنية", END: "التحمل", AGI: "السرعة" };
+  var QM = {};
+  Object.keys(TYPES).forEach(function (k) { TYPES[k].quests.forEach(function (q) { QM[q.id] = q; }); });
+
+  var $ = function (s) { return document.querySelector(s); };
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function dk(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parseKey(k) { var p = k.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function weekStart(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 1) % 7)); return x; }
+
+  function fresh() { return { done: {}, tests: [], start: "07:00", end: "00:00", updated: 0 }; }
+  function normalize(d) {
+    var s = fresh();
+    if (!d || typeof d !== "object") return s;
+    if (d.done && typeof d.done === "object") s.done = d.done;
+    if (Array.isArray(d.tests)) s.tests = d.tests;
+    if (typeof d.start === "string") s.start = d.start;
+    if (typeof d.end === "string") s.end = d.end;
+    s.updated = Number(d.updated) || 0;
+    return s;
+  }
+  var state = fresh();
+  try { var raw = localStorage.getItem(KEY); if (raw) state = normalize(JSON.parse(raw)); } catch (e) {}
+
+  var ref = null, writing = false, pending = false, timer = null;
+  function dbWrite() {
+    if (!ref) return;
+    if (writing) { pending = true; return; }
+    writing = true;
+    ref.set(JSON.parse(JSON.stringify(state))).catch(function () {}).then(function () {
+      writing = false;
+      if (pending) { pending = false; dbWrite(); }
+    });
+  }
+  function save() {
+    state.updated = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    clearTimeout(timer);
+    timer = setTimeout(dbWrite, 600);
+  }
+
+  function totals() {
+    var xp = 0, st = { STR: 0, VIT: 0, END: 0, AGI: 0 }, weeks = {};
+    Object.keys(state.done).forEach(function (k) {
+      var ids = state.done[k] || [];
+      if (!ids.length) return;
+      var wk = dk(weekStart(parseKey(k)));
+      weeks[wk] = (weeks[wk] || 0) + 1;
+      ids.forEach(function (id) { var q = QM[id]; if (q) { xp += q.xp; st[q.s] += q.xp; } });
+    });
+    Object.keys(weeks).forEach(function (w) { if (weeks[w] >= 5) xp += 150; });
+    xp += state.tests.length * 50;
+    return { xp: xp, st: st, weeks: weeks };
+  }
+  function levelOf(xp) {
+    var lvl = 1, need = 600;
+    while (xp >= need) { xp -= need; lvl++; need += 300; }
+    return { lvl: lvl, cur: xp, need: need };
+  }
+  function streakOf(today) {
+    var d = new Date(today), n = 0;
+    if (!(state.done[dk(d)] || []).length) d.setDate(d.getDate() - 1);
+    while ((state.done[dk(d)] || []).length) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+
+  function render() {
+    var now = new Date(), tk = dk(now), tt = TYPE_BY_DAY[now.getDay()], type = TYPES[tt];
+    var T = totals(), L = levelOf(T.xp);
+    var si = Math.min(L.lvl, STAGES.length) - 1;
+    $("#lvl").textContent = L.lvl;
+    $("#rank").textContent = L.lvl > 5 ? "S" : STAGES[si][0];
+    $("#stage").textContent = STAGES[si][1];
+    $("#streak").textContent = streakOf(now);
+    $("#xp-text").textContent = L.cur + " / " + L.need;
+    $("#xp-bar").style.width = Math.min(100, Math.round(L.cur / L.need * 100)) + "%";
+    var dateStr = "";
+    try { dateStr = now.toLocaleDateString("ar-EG-u-nu-latn", { weekday: "long", day: "numeric", month: "long" }); } catch (e) { dateStr = DAYS[now.getDay()]; }
+    $("#today-line").textContent = dateStr;
+
+    // quests
+    var doneIds = state.done[tk] || [];
+    $("#q-title").textContent = "مهام اليوم: " + type.name;
+    $("#q-count").textContent = doneIds.filter(function (id) { return type.quests.some(function (q) { return q.id === id; }); }).length + " / " + type.quests.length;
+    $("#quests").innerHTML = type.quests.map(function (q) {
+      var on = doneIds.indexOf(q.id) > -1;
+      return '<button type="button" class="q" data-q="' + q.id + '" aria-pressed="' + on + '">' +
+        '<span class="box">✓</span><span class="txt"><b>' + q.t + '</b><span>' + q.n + '</span></span>' +
+        '<span class="xp">+' + q.xp + ' XP</span></button>';
+    }).join("");
+    var allDone = type.quests.every(function (q) { return doneIds.indexOf(q.id) > -1; });
+    var note = "";
+    if (allDone) note = '<div class="callout good">خلصت مهام اليوم. كمّل بنفس الإيقاع.</div>';
+    else if (tt === "rest") note = '<div class="callout">النهارده راحة. العضلات بتكبر وانت مرتاح، والراحة بتحسب XP كمان.</div>';
+    else if (tt === "recovery") note = '<div class="callout">يوم تعافي خفيف. مفيش داعي تضغط على جسمك.</div>';
+    $("#q-note").innerHTML = note;
+
+    // stats
+    var maxV = 50, vals = {};
+    Object.keys(T.st).forEach(function (k) { vals[k] = 10 + Math.round(T.st[k] / 10); if (vals[k] * 1.2 > maxV) maxV = vals[k] * 1.2; });
+    $("#stats").innerHTML = Object.keys(STAT_INFO).map(function (k) {
+      return '<div class="stat"><div class="row"><span class="k">' + k + '</span><span class="v">' + vals[k] + '</span></div>' +
+        '<div class="d">' + STAT_INFO[k] + '</div><div class="bar"><i style="width:' + Math.round(vals[k] / maxV * 100) + '%"></i></div></div>';
+    }).join("");
+
+    // week
+    var ws = weekStart(now), html = "", active = 0;
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(ws); d.setDate(ws.getDate() + i);
+      var k = dk(d), has = (state.done[k] || []).length > 0, isToday = k === tk, fut = k > tk;
+      if (has) active++;
+      html += '<div class="day' + (has ? " done" : "") + (isToday ? " today" : "") + (fut ? " future" : "") + '">' +
+        '<span class="n">' + DAYS[d.getDay()] + '</span><span class="t">' + TYPES[TYPE_BY_DAY[d.getDay()]].name + '</span>' +
+        '<span class="m">' + (has ? "✓" : "·") + '</span></div>';
+    }
+    $("#week").innerHTML = html;
+    $("#boss-text").textContent = Math.min(active, 5) + " / 5";
+    $("#boss-bar").style.width = Math.min(100, Math.round(active / 5 * 100)) + "%";
+
+    // tests
+    var tests = state.tests.slice(-4).reverse();
+    if (!tests.length) {
+      $("#hist").innerHTML = '<p class="note">لسه ما سجلتش اختبار. اعمل أول اختبار وبعدين قارنه كل أسبوعين.</p>';
+    } else {
+      var rows = tests.map(function (t, i) {
+        var prev = tests[i + 1];
+        function cell(v, p, lowerBetter) {
+          if (v == null) return "-";
+          var s = String(v);
+          if (prev && p != null && p !== v) {
+            var diff = Math.round((v - p) * 10) / 10, good = lowerBetter ? diff < 0 : diff > 0;
+            s += ' <span class="' + (good ? "up" : "down") + '">' + (diff > 0 ? "+" : "") + diff + '</span>';
+          }
+          return s;
+        }
+        return "<tr><td>" + String(t.d).slice(5) + "</td><td>" + cell(t.push, prev && prev.push, false) + "</td><td>" +
+          cell(t.squat, prev && prev.squat, false) + "</td><td>" + cell(t.run, prev && prev.run, true) + "</td></tr>";
+      }).join("");
+      $("#hist").innerHTML = "<table><thead><tr><th>التاريخ</th><th>ضغط</th><th>سكوات</th><th>جري 2 كم</th></tr></thead><tbody>" + rows + "</tbody></table>";
+    }
+
+    // stages
+    $("#stages").innerHTML = STAGES.map(function (s, i) {
+      var cls = i === si ? "cur" : (i < si ? "past" : "");
+      return '<li class="' + cls + '"><span class="l">Lv ' + (i + 1) + '</span><span>' + s[1] + ' <small>(' + s[2] + ')</small></span></li>';
+    }).join("");
+  }
+
+  // timer
+  function hm(v) { var p = (v || "").split(":"); return p.length === 2 ? [Number(p[0]), Number(p[1])] : null; }
+  function fmt(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    return pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s % 3600 / 60)) + ":" + pad(s % 60);
+  }
+  function tick() {
+    var a = hm(state.start), b = hm(state.end), n = new Date();
+    if (!a || !b) { $("#clock").textContent = "--:--:--"; $("#timer-msg").textContent = "حدد البداية والنهاية"; return; }
+    var s = new Date(n.getFullYear(), n.getMonth(), n.getDate(), a[0], a[1]);
+    var e = new Date(n.getFullYear(), n.getMonth(), n.getDate(), b[0], b[1]);
+    if (e <= s) e.setDate(e.getDate() + 1);
+    var bar = $("#timer-bar");
+    if (n < s) { $("#clock").textContent = fmt(s - n); $("#timer-msg").textContent = "فاضل على بداية التمرين"; bar.style.width = "0%"; }
+    else if (n < e) { $("#clock").textContent = fmt(e - n); $("#timer-msg").textContent = "التمرين شغال، فاضل على النهاية"; bar.style.width = Math.round((n - s) / (e - s) * 100) + "%"; }
+    else { $("#clock").textContent = "00:00:00"; $("#timer-msg").textContent = "وقت التمرين خلص"; bar.style.width = "100%"; }
+  }
+  function applyInputs() { $("#t-start").value = state.start; $("#t-end").value = state.end; }
+
+  // events
+  $("#quests").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-q]");
+    if (!b) return;
+    var k = dk(new Date()), id = b.getAttribute("data-q"), list = (state.done[k] || []).slice(), i = list.indexOf(id);
+    if (i > -1) list.splice(i, 1); else list.push(id);
+    if (list.length) state.done[k] = list; else delete state.done[k];
+    save(); render();
+  });
+  $("#t-start").addEventListener("change", function (e) { state.start = e.target.value; save(); tick(); });
+  $("#t-end").addEventListener("change", function (e) { state.end = e.target.value; save(); tick(); });
+  $("#save-test").addEventListener("click", function () {
+    function val(id) { var v = $(id).value; return v === "" ? null : Number(v); }
+    var t = { d: dk(new Date()), push: val("#in-push"), squat: val("#in-squat"), run: val("#in-run") };
+    if (t.push == null && t.squat == null && t.run == null) return;
+    state.tests.push(t);
+    ["#in-push", "#in-squat", "#in-run"].forEach(function (id) { $(id).value = ""; });
+    save(); render();
+  });
+
+  applyInputs(); render(); tick();
+  setInterval(tick, 1000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { render(); tick(); } });
+
+  // shared storage when this view can use it; the page works without it
+  (function () {
+    if (!window.claude || !window.claude.use) return;
+    Promise.all([window.claude.use("db"), window.claude.use("user")]).then(function (r) {
+      var dbm = r[0], user = r[1];
+      if (!dbm || !user) return null;
+      return user.id().then(function (id) {
+        if (!id) return null;
+        ref = dbm.doc("data/users/" + id + "/hunter");
+        return ref.get().then(function (snap) {
+          if (snap.exists) {
+            var d = normalize(snap.data());
+            if (d.updated > state.updated) {
+              state = d;
+              try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+              applyInputs(); render(); tick();
+              return;
+            }
+          }
+          if (state.updated > 0) dbWrite();
+        });
+      });
+    }).catch(function () {});
+  })();
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+
+</body>
+</html>
